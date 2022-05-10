@@ -1,15 +1,9 @@
 import React from "react";
+import { useCallback, useReducer } from "react";
 import { Divider, List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-
-const reorder = (list, startIndex, endIndex) => {
-    const result = Array.from(list);
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-  
-    return result;
-};
+import produce from "immer";
 
 const getItemStyle = (isDragging, draggableStyle) => ({
     // styles we need to apply on draggables
@@ -20,42 +14,50 @@ const getItemStyle = (isDragging, draggableStyle) => ({
     })
 });
 
+const dragReducer = produce((draft, action) => {
+    switch (action.type) {
+    case "MOVE": {
+        draft[action.from] = draft[action.from] || [];
+        draft[action.to] = draft[action.to] || [];
+        const [removed] = draft[action.from].splice(action.fromIndex, 1);
+        draft[action.to].splice(action.toIndex, 0, removed);
+      }
+      break;
+    default: break;
+    }
+});
+
 const visibleLayers = [];
 const socioeconomicLayers = ["Relative Wealth: District", "GDP / PPP", "Health Care Institutions", "SV: Ground Truth", "Financial Institutions", "Population Density", "Educational Facilities", "Population Density Mask", "Built Environment", "Disaster Count"];
 const geodataLayers = ["Distance to Waterway", "Distance to Healthcare", "Distance to Coast", "Distance to Finance", "Elevation", "Plant Health"];
 
-export default class MapDrawerContent extends React.Component {
+export default function MapDrawerContent() {
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            items: visibleLayers.concat(socioeconomicLayers, geodataLayers)
-        };
-        this.onDragEnd = this.onDragEnd.bind(this);
-    }
+    const [state, dispatch] = useReducer(dragReducer, {
+        items: visibleLayers,
+        items2: socioeconomicLayers,
+        items3: geodataLayers,
+    });
 
-    onDragEnd(result) {
-        // dropped outside the list
-        if (!result.destination) {
-          return;
+    const onDragEnd = useCallback((result) => {
+        if (result.reason === "DROP") {
+          if (!result.destination) {
+            return;
+          }
+          dispatch({
+            type: "MOVE",
+            from: result.source.droppableId,
+            to: result.destination.droppableId,
+            fromIndex: result.source.index,
+            toIndex: result.destination.index,
+          });
         }
-    
-        const items = reorder(
-          this.state.items,
-          result.source.index,
-          result.destination.index
-        );
-    
-        this.setState({
-          items
-        });
-    }
+    }, []);
 
-    render() {
-        return (
+    return (
         <div className="drawercontent">
-            <DragDropContext onDragEnd={this.onDragEnd}>
-                <Droppable droppableId="droppable" type="ITEM">
+            <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="items" type="ITEM">
                     {(provided, snapshot) => (
                         <div
                         {...provided.droppableProps}
@@ -63,22 +65,38 @@ export default class MapDrawerContent extends React.Component {
                         <Divider>
                             Visible Layers
                         </Divider>
-                        <MapDrawerList items={visibleLayers} provided={provided}/>
+                        <MapDrawerList items={state.items} provided={provided}/>
+                        </div>
+                    )}
+                </Droppable>
+                <Droppable droppableId="items2" type="ITEM">
+                    {(provided, snapshot) => (
+                        <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}>
                         <Divider>
                             Socioeconomic Layers
                         </Divider>
-                        <MapDrawerList items={socioeconomicLayers} provided={provided}/>
+                        <MapDrawerList items={state.items2} provided={provided}/>
+                        </div>
+                    )} 
+                </Droppable>
+                <Droppable droppableId="items3" type="ITEM">
+                    {(provided, snapshot) => (
+                        <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}>
                         <Divider>
                             Geodata Layers
                         </Divider>
-                        <MapDrawerList items={geodataLayers} provided={provided}/>
+                        <MapDrawerList items={state.items3} provided={provided}/>
                         </div>
                     )}
                 </Droppable>
             </DragDropContext>
         </div>
-        );
-    }
+    );
+    
 }
 
 class DrawerListItem extends React.Component {
@@ -113,11 +131,7 @@ class MapDrawerList extends React.Component {
                 {this.props.items.map((text, index) => (
                     <Draggable key={text} draggableId={text} index={index}>
                         {(provided, snapshot) => (
-                            <div
-                            // ref={provided.innerRef}
-                            // {...provided.draggableProps}
-                            // {...provided.draggableProps}
-                            >
+                            <div>
                                 <DrawerListItem name={text} provided={provided} snapshot={snapshot}/>
                             </div>
                         )}

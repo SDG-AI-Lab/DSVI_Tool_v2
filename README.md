@@ -1,6 +1,10 @@
-# Getting Started with Create React App
+# Getting Started
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+To install the project's dependencies, run:
+
+### `npm install --legacy-peer-deps`
+
+This should resolve issues arising from some older dependencies.
 
 ## Available Scripts
 

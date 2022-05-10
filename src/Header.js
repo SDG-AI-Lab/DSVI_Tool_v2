@@ -126,14 +126,11 @@ export default function Header() {
               {theme.direction === 'ltr' ? <ChevronLeft /> : <ChevronRight />}
             </IconButton>
         </DrawerHeader>
-        {/* <Divider /> */}
+        <Divider />
         <MapDrawerContent />
     </Drawer>
   }
 
-  const drawerContent = () => {
-      return <MapDrawerContent/>
-    }
   const mainContent = () => {
       return <Main open={open}>
           <DrawerHeader />
